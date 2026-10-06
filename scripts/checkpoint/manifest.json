@@ -1,6 +1,6 @@
 {
   "sukisu_root": {
-    "good": "9fbe8fe8ca90c62c259c5894bf96d02ac31209b9",
+    "good": "",
     "bad": []
   },
   "sukisu_susfs": {
@@ -8,17 +8,17 @@
     "bad": ["70fa0e092a2c259c5894bf96d02ac31209b9"]
   },
   "resukisu_susfs": {
-    "good": "83850e8e93c5f7cfaec69cf03707f13e799df36a",
+    "good": "",
     "bad": [
       "052ca27775cc9c8570e3b1ba3db7c29486d6020e"
     ]
   },
   "ksunext_root": {
-    "good": "917df670d7259362d4537735a9b6d110d133c049",
+    "good": "",
     "bad": []
   },
   "ksunext_susfs": {
-    "good": "4c5853188012f63a1a1fedd4a57fda6375fecb38",
+    "good": "",
     "bad": []
   },
   "susfs4ksu": {
@@ -27,7 +27,7 @@
     "bad": []
   },
   "resukisu_root": {
-    "good": "052ca27775cc9c8570e3b1ba3db7c29486d6020e",
+    "good": "",
     "bad": []
   }
 }
