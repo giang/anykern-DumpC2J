@@ -125,14 +125,25 @@ else
   echo "[+] Symlinking $REPO_NAME to drivers/kernelsu..."
   ln -sf "$MODULES_DIR/$REPO_NAME/kernel" "$KERNEL_DIR/drivers/kernelsu"
 
-  # Fix: Remove #include "arch.h" added in SukiSU upstream 70fa0e0
-  # This include uses quoted resolution relative to including file's dir,
-  # but arch.h is not available in our -I paths for arm64.
-  # The old commit (b20dee7) worked without it.
-  KERNEL_INCLUDES_H="$KERNEL_DIR/drivers/kernelsu/kernel/kernel_includes.h"
-  if [ -f "$KERNEL_INCLUDES_H" ]; then
-    sed -i '/^#include "arch.h"/d' "$KERNEL_INCLUDES_H"
-    echo "[SUSFS-Fixup] Removed #include \"arch.h\" from kernel_includes.h (incompatible with our build)"
+  # SukiSU 486ad6f+ adds #include "arch.h" to kernel_includes.h (needed by
+  # ksyscall PT_REGS_* macros in infra/kernel_compat.h), but the file itself
+  # was deleted in ad8949e and never restored on builtin. Official KernelSU
+  # keeps it at kernel/include/arch.h; SukiSU Makefile already has
+  # -I$(srctree)/drivers/kernelsu/include when CONFIG_KSU_SUSFS=y.
+  # Symlink target IS kernel/, so paths are drivers/kernelsu/{include/,kernel_includes.h}.
+  KERNEL_INCLUDES_H="$KERNEL_DIR/drivers/kernelsu/kernel_includes.h"
+  ARCH_H_DST="$KERNEL_DIR/drivers/kernelsu/include/arch.h"
+  ARCH_H_SRC="${BUILDER_DIR}/scripts/patches/kernelsu_arch.h"
+  if [ -f "$KERNEL_INCLUDES_H" ] && grep -q '#include "arch.h"' "$KERNEL_INCLUDES_H" 2>/dev/null; then
+    if [ ! -f "$ARCH_H_DST" ]; then
+      if [ -f "$ARCH_H_SRC" ]; then
+        mkdir -p "$(dirname "$ARCH_H_DST")"
+        cp "$ARCH_H_SRC" "$ARCH_H_DST"
+        echo "[+] Restored missing include/arch.h (SukiSU builtin omits it; from scripts/patches/kernelsu_arch.h)"
+      else
+        warn "kernel_includes.h needs arch.h but ${ARCH_H_SRC} is missing — build will fail"
+      fi
+    fi
   fi
 fi
 
