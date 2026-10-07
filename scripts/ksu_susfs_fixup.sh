@@ -105,6 +105,30 @@ static int kernel_umount_feature_set(u64 value)\
         fi
         echo "[SUSFS-Fixup] kernel_umount.c: injected missing kernel_umount_feature_set"
     fi
+
+    # [FIX] supercall.h — declare EVENT_SERVICES (missing upstream)
+    # dispatch.c (commit 70fa0e09, builtin HEAD) switches on EVENT_SERVICES
+    # in do_report_event(), but supercall.h only DECLAREs up to
+    # EVENT_MODULE_MOUNTED. Without the enum entry the switch case is an
+    # undeclared identifier. Value 4 (next after EVENT_MODULE_MOUNTED=3).
+    SUPERCALL_H_UAPI="$KSU_KERNEL/include/uapi/supercall.h"
+    if [ -f "$SUPERCALL_H_UAPI" ] && ! grep -q "EVENT_SERVICES" "$SUPERCALL_H_UAPI" 2>/dev/null; then
+        sed -i '/DECLARE(__u32, EVENT_MODULE_MOUNTED, 3);/a\DECLARE(__u32, EVENT_SERVICES, 4);' "$SUPERCALL_H_UAPI"
+        echo "[SUSFS-Fixup] supercall.h: Added missing EVENT_SERVICES declare"
+    fi
+
+    # [FIX] selinux/rules.c — drop duplicate pol/old_pol declaration
+    # apply_kernelsu_rules() declares `struct selinux_policy *pol, *old_pol;`
+    # at function scope, then re-declares `struct selinux_policy *pol,
+    # *old_pol = selinux_state.policy;` inside the
+    # `#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)` block (commit
+    # 70fa0e09) → "redefinition of 'pol'" / "'old_pol'". The inner line is
+    # the one that assigns selinux_state.policy; the outer plain declaration
+    # is kept. Target the exact assigning line (unique in the file).
+    if [ -f "$RULES_C" ] && grep -q 'struct selinux_policy \*pol, \*old_pol = selinux_state.policy;' "$RULES_C" 2>/dev/null; then
+        sed -i '/struct selinux_policy \*pol, \*old_pol = selinux_state.policy;/d' "$RULES_C"
+        echo "[SUSFS-Fixup] selinux/rules.c: Removed duplicate pol/old_pol declaration"
+    fi
 fi
 
 if [ "$MANAGER" = "resukisu" ]; then
