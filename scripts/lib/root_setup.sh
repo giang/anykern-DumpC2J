@@ -124,6 +124,16 @@ else
 
   echo "[+] Symlinking $REPO_NAME to drivers/kernelsu..."
   ln -sf "$MODULES_DIR/$REPO_NAME/kernel" "$KERNEL_DIR/drivers/kernelsu"
+
+  # Fix: Remove #include "arch.h" added in SukiSU upstream 70fa0e0
+  # This include uses quoted resolution relative to including file's dir,
+  # but arch.h is not available in our -I paths for arm64.
+  # The old commit (b20dee7) worked without it.
+  KERNEL_INCLUDES_H="$KERNEL_DIR/drivers/kernelsu/kernel/kernel_includes.h"
+  if [ -f "$KERNEL_INCLUDES_H" ]; then
+    sed -i '/^#include "arch.h"/d' "$KERNEL_INCLUDES_H"
+    echo "[SUSFS-Fixup] Removed #include \"arch.h\" from kernel_includes.h (incompatible with our build)"
+  fi
 fi
 
 if [ "$VARIANT" == "susfs" ]; then

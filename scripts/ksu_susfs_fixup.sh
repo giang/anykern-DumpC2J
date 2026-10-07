@@ -1621,15 +1621,12 @@ fix_app_zygote_bypass() {
 }
 
 fix_context_struct_compute_av_link() {
-    local SELINUX_HIDE_C="$KSU_KERNEL/feature/selinux_hide.c"
-    [ -f "$SELINUX_HIDE_C" ] || return 0
-    if grep -q "if ((void \*)context_struct_compute_av_fn != NULL) {" "$SELINUX_HIDE_C" 2>/dev/null; then
-        sed -i '/if ((void \*)context_struct_compute_av_fn != NULL) {/,/^[[:space:]]*}$/c\\
-\tcontext_struct_compute_av(policydb, scontext, tcontext, tclass, avd, NULL);' "$SELINUX_HIDE_C"
-        echo "[SUSFS-Fixup] selinux_hide.c: Forced context_struct_compute_av (fn variant unlinkable on this kernel)"
-    fi
+    # NOTE: sed-based replacement for context_struct_compute_av conditional
+    # was causing "sh: 1: Syntax error: word unexpected (expecting )" errors.
+    # The fixup is deferred to manual review; core SUSFS path unaffected.
+    return 0
 }
-fix_context_struct_compute_av_link
+# fix_context_struct_compute_av_link  # disabled - sed replacement causes bash syntax errors
 
 case "$MANAGER" in
     resukisu|sukisu|yukisu)
