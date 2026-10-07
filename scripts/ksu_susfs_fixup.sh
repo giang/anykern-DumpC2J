@@ -116,19 +116,6 @@ static int kernel_umount_feature_set(u64 value)\
         sed -i '/DECLARE(__u32, EVENT_MODULE_MOUNTED, 3);/a\DECLARE(__u32, EVENT_SERVICES, 4);' "$SUPERCALL_H_UAPI"
         echo "[SUSFS-Fixup] supercall.h: Added missing EVENT_SERVICES declare"
     fi
-
-    # [FIX] selinux/rules.c — drop duplicate pol/old_pol declaration
-    # apply_kernelsu_rules() declares `struct selinux_policy *pol, *old_pol;`
-    # at function scope, then re-declares `struct selinux_policy *pol,
-    # *old_pol = selinux_state.policy;` inside the
-    # `#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)` block (commit
-    # 70fa0e09) → "redefinition of 'pol'" / "'old_pol'". The inner line is
-    # the one that assigns selinux_state.policy; the outer plain declaration
-    # is kept. Target the exact assigning line (unique in the file).
-    if [ -f "$RULES_C" ] && grep -q 'struct selinux_policy \*pol, \*old_pol = selinux_state.policy;' "$RULES_C" 2>/dev/null; then
-        sed -i '/struct selinux_policy \*pol, \*old_pol = selinux_state.policy;/d' "$RULES_C"
-        echo "[SUSFS-Fixup] selinux/rules.c: Removed duplicate pol/old_pol declaration"
-    fi
 fi
 
 if [ "$MANAGER" = "resukisu" ]; then
@@ -1917,4 +1904,19 @@ if [ -f "$BRIDGE_C" ] && grep -q "} else if (ksu_su_compat_enabled) {" "$BRIDGE_
     }\
 #endif' "$BRIDGE_C"
     echo "[SUSFS-Fixup] syscall_event_bridge.c: Guarded ksu_handle_execve_sucompat call site for SUSFS"
+fi
+
+# --------------------------------------------------------------------------
+# [GLOBAL] selinux/rules.c — drop duplicate pol/old_pol declaration
+# apply_kernelsu_rules() declares `struct selinux_policy *pol, *old_pol;`
+# at function scope, then re-declares `struct selinux_policy *pol,
+# *old_pol = selinux_state.policy;` inside the
+# `#if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 10, 0)` block (SukiSU
+# commit 70fa0e09) → "redefinition of 'pol'" / "'old_pol'". The inner line
+# is the one that assigns selinux_state.policy; the outer plain declaration
+# is kept. Target the exact assigning line (unique in the file).
+# Placed here (after RULES_C is set at line 174) so the variable exists.
+if [ -f "$RULES_C" ] && grep -q 'struct selinux_policy \*pol, \*old_pol = selinux_state.policy;' "$RULES_C" 2>/dev/null; then
+    sed -i '/struct selinux_policy \*pol, \*old_pol = selinux_state.policy;/d' "$RULES_C"
+    echo "[SUSFS-Fixup] selinux/rules.c: Removed duplicate pol/old_pol declaration"
 fi
